@@ -1,0 +1,13 @@
+CC=gcc
+CFLAGS=-Wall -Wextra -O2 -pthread
+
+all: server client
+
+server: server.c db.c
+	$(CC) $(CFLAGS) -o server server.c db.c
+
+client: client.c
+	$(CC) $(CFLAGS) -o client client.c
+
+clean:
+	rm -f server client *.o users.db accounts.db loans.db transactions.log feedback.log
