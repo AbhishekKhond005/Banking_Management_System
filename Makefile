@@ -10,4 +10,4 @@ client: client.c
 	$(CC) $(CFLAGS) -o client client.c
 
 clean:
-	rm -f server client *.o users.db accounts.db loans.db transactions.log feedback.log
+	rm -f server client *.o users.db accounts.db loans.db transactions.log feedback.log accounts.journal

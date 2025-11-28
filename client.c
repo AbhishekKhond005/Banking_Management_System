@@ -137,7 +137,8 @@ static void print_kv_table(const char *title, const char *keys[], const char *va
         if (lk > wkey) wkey = lk;
         if (lv > wval) wval = lv;
     }
-    if (wkey < 6) wkey = 6; if (wval < 4) wval = 4;
+    if (wkey < 6) wkey = 6;
+    if (wval < 4) wval = 4;
     int width = 2 + wkey + 3 + wval + 2;
     print_border(width, '=');
     print_centered(title ? title : "Info", width);

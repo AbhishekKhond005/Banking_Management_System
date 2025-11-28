@@ -28,6 +28,15 @@
 #define FEEDBACK_LOG   "feedback.log"
 #define JOURNAL_FILE   "accounts.journal"
 
+static void hash_password(const char *plain, char *hashed) {
+    unsigned long hash = 5381;
+    int c;
+    const char *p = plain;
+    while ((c = *p++))
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    snprintf(hashed, PASSWORD_MAX, "%lx", hash);
+}
+
 
 static int ensure_file(const char *path, size_t rec_size) {
     (void)rec_size; 
@@ -271,7 +280,9 @@ int db_init(void) {
         admin.active = 1;
         admin.session_active = 0;
         strncpy(admin.username, "admin", USERNAME_MAX - 1);
-        strncpy(admin.password, "admin", PASSWORD_MAX - 1);
+        char hpw[PASSWORD_MAX];
+        hash_password("admin", hpw);
+        snprintf(admin.password, sizeof(admin.password), "%s", hpw);
         pwrite(ufd, &admin, sizeof(admin), 0);
         fsync(ufd);
     }
@@ -293,7 +304,9 @@ int db_login(const char *username, const char *password, user_record *out) {
     user_record u;
     off_t off;
     int rc = read_user_by_username(ufd, username, &u, &off);
-    if (rc != 0 || !u.active || strncmp(u.password, password, PASSWORD_MAX) != 0 || u.session_active) {
+    char hpw[PASSWORD_MAX];
+    hash_password(password, hpw);
+    if (rc != 0 || !u.active || strncmp(u.password, hpw, PASSWORD_MAX) != 0 || u.session_active) {
         unlock_file(ufd);
         close(ufd);
         return -1;
@@ -522,7 +535,9 @@ int db_change_password(int user_id, const char *new_password) {
     je.kind = 10; je.user_off1 = off; je.old_user1 = u;
     if (journal_write_and_sync(jfd, &je) != 0) { unlock_file(jfd); close(jfd); unlock_file(ufd); close(ufd); return -1; }
 
-    strncpy(u.password, new_password, PASSWORD_MAX - 1);
+    char hpw[PASSWORD_MAX];
+    hash_password(new_password, hpw);
+    snprintf(u.password, sizeof(u.password), "%s", hpw);
     u.password[PASSWORD_MAX - 1] = 0;
     if (pwrite(ufd, &u, sizeof(u), off) != (ssize_t)sizeof(u)) { unlock_file(ufd); close(ufd); unlock_file(jfd); close(jfd); return -1; }
     fsync(ufd);
@@ -645,7 +660,9 @@ int db_add_user_with_account(const char *username, const char *password, int rol
     u.active = active ? 1 : 0;
     u.session_active = 0;
     strncpy(u.username, username, USERNAME_MAX - 1);
-    strncpy(u.password, password, PASSWORD_MAX - 1);
+    char hpw[PASSWORD_MAX];
+    hash_password(password, hpw);
+    snprintf(u.password, sizeof(u.password), "%s", hpw);
 
     off_t uoff = lseek(ufd, 0, SEEK_END);
     pwrite(ufd, &u, sizeof(u), uoff);
